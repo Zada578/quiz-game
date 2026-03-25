@@ -23,8 +23,13 @@ const confirmNo = document.getElementById('confirmNo');
 async function loadQuizData() {
   try {
     const response = await fetch('/api/questions');
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    quizData = await response.json();
+    if (response.ok) {
+      quizData = await response.json();
+    } else {
+      // Fallback to static questions for static hosts like Vercel/Netlify
+      const staticRes = await fetch('/questions/sample.json');
+      quizData = await staticRes.json();
+    }
     totalQuestions = quizData.length;
     console.log(`✅ Loaded ${totalQuestions} questions`);
   } catch (error) {
@@ -59,12 +64,6 @@ function loadQuestion() {
     }
   optionsEl.appendChild(div);
   });
-  
-  updateNavButtons();
-  
-  // Update progress
-  updateProgress();
-}
 
 function selectOption(index) {
   // Clear previous selection

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz App</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div id="start">
+      <h1>Quiz Time!</h1>
+      <p>Ready for 5 questions?</p>
+      <button id="startBtn">Start Quiz</button>
+    </div>
+
+    <div id="quiz">
+      <div class="question" id="question"></div>
+      <div id="options" class="options"></div>
+      <div class="nav-buttons">
+        <button id="prevBtn" class="nav-btn">Previous</button>
+        <button id="nextBtn" class="nav-btn">Next</button>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <h3>Finish Quiz?</h3>
+        <p>Are you sure you want to submit your answers?</p>
+        <button id="confirmYes">Yes, Submit</button>
+        <button id="confirmNo">No, Continue</button>
+      </div>
+    </div>
+
+    <div id="results">
+      <h1>Results</h1>
+      <div id="score"></div>
+    </div>
+  </div>
+
+<script src="quiz.js"></script>
+</body>
+</html>

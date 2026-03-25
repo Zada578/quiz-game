@@ -1,36 +1,11 @@
-const quizData = [
-  {
-    question: 'What is the capital of France?',
-    options: ['Berlin', 'Madrid', 'Paris', 'Rome'],
-    correct: 2
-  },
-  {
-    question: 'Which planet is known as the Red Planet?',
-    options: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
-    correct: 1
-  },
-  {
-    question: 'What is 2 + 2?',
-    options: ['3', '4', '5', '6'],
-    correct: 1
-  },
-  {
-    question: 'Who wrote "Romeo and Juliet"?',
-    options: ['Charles Dickens', 'William Shakespeare', 'Jane Austen', 'Mark Twain'],
-    correct: 1
-  },
-  {
-    question: 'What is the largest ocean on Earth?',
-    options: ['Atlantic Ocean', 'Indian Ocean', 'Arctic Ocean', 'Pacific Ocean'],
-    correct: 3
-  }
-];
+// Quiz App - Complete Frontend Logic
+// Integrates with /api/questions, /api/score, /api/leaderboard
 
+let quizData = [];
+let totalQuestions = 0;
 let currentQuestion = 0;
+let answers = [];
 let score = 0;
-let answers = new Array(quizData.length).fill(null);
-let feedbackTimer = null;
-let progressBar = null;
 let isFeedbackShowing = false;
 
 const startEl = document.getElementById('start');
@@ -39,39 +14,32 @@ const resultsEl = document.getElementById('results');
 const confirmModal = document.getElementById('confirmModal');
 const questionEl = document.getElementById('question');
 const optionsEl = document.getElementById('options');
-const nextBtn = document.getElementById('nextBtn');
 const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
 const startBtn = document.getElementById('startBtn');
 const confirmYes = document.getElementById('confirmYes');
 const confirmNo = document.getElementById('confirmNo');
-const scoreEl = document.getElementById('score');
 
-function createProgressBar() {
-  const progress = document.createElement('div');
-  progress.className = 'progress';
-  progressBar = document.createElement('div');
-  progressBar.className = 'progress-bar';
-  progress.appendChild(progressBar);
-  document.querySelector('.container').insertBefore(progress, quizEl);
+async function loadQuizData() {
+  try {
+    const response = await fetch('/api/questions');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    quizData = await response.json();
+    totalQuestions = quizData.length;
+    console.log(`✅ Loaded ${totalQuestions} questions`);
+  } catch (error) {
+    console.error('❌ Load failed:', error);
+    alert('Failed to load questions. Check console.');
+  }
 }
-
-startBtn.addEventListener('click', startQuiz);
-confirmYes.addEventListener('click', submitQuiz);
-confirmNo.addEventListener('click', () => {
-  confirmModal.classList.remove('active');
-});
-
-nextBtn.addEventListener('click', handleNext);
-prevBtn.addEventListener('click', handlePrev);
 
 function startQuiz() {
   startEl.style.display = 'none';
   quizEl.style.display = 'block';
   currentQuestion = 0;
   score = 0;
-  answers = new Array(quizData.length).fill(null);
+  answers = new Array(totalQuestions).fill(null);
   isFeedbackShowing = false;
-  clearFeedback();
   updateNavButtons();
   loadQuestion();
 }
@@ -82,92 +50,44 @@ function loadQuestion() {
   
   optionsEl.innerHTML = '';
   q.options.forEach((option, index) => {
-    const btn = document.createElement('button');
-    btn.className = 'option';
-    btn.textContent = option;
-    btn.addEventListener('click', () => selectOption(index));
-    optionsEl.appendChild(btn);
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.textContent = option;
+    div.onclick = () => selectOption(index);
+    if (answers[currentQuestion] === index) {
+      div.classList.add('selected');
+    }
+  optionsEl.appendChild(div);
   });
   
-  if (answers[currentQuestion] !== null) {
-    const selectedBtn = optionsEl.children[answers[currentQuestion]];
-    if (selectedBtn) {
-      selectedBtn.classList.add('selected');
-    }
-  }
-  
-  updateProgress();
   updateNavButtons();
-  clearFeedback();
+  
+  // Update progress
+  updateProgress();
 }
 
 function selectOption(index) {
-  if (isFeedbackShowing) return;
+  // Clear previous selection
+  document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
   
+  // Select new
+  const selected = optionsEl.children[index];
+  selected.classList.add('selected');
   answers[currentQuestion] = index;
-  const options = document.querySelectorAll('.option');
-  options.forEach((opt, i) => {
-    opt.classList.remove('selected', 'correct', 'incorrect');
-    if (i === index) {
-      opt.classList.add('selected');
-    }
-  });
   
-  // Show immediate feedback
-  setTimeout(() => showAnswerFeedback(), 300);
+  updateNavButtons();
 }
 
-function showAnswerFeedback() {
-  isFeedbackShowing = true;
-  nextBtn.disabled = true;
-  
-  const options = document.querySelectorAll('.option');
-  const userAnswer = answers[currentQuestion];
-  const correctIndex = quizData[currentQuestion].correct;
-  
-  options.forEach((option, i) => {
-    if (i === correctIndex) {
-      option.classList.add('correct');
-    } else if (i === userAnswer && i !== correctIndex) {
-      option.classList.add('incorrect');
-    }
-  });
-  
-  if (userAnswer === correctIndex) {
-    score++;
-  }
-  
-  feedbackTimer = setTimeout(() => {
-    isFeedbackShowing = false;
-    nextBtn.disabled = false;
-    clearFeedback();
-  }, 1500);
-}
-
-function clearFeedback() {
-  if (feedbackTimer) {
-    clearTimeout(feedbackTimer);
-    feedbackTimer = null;
-  }
-  document.querySelectorAll('.option').forEach(opt => {
-    opt.classList.remove('correct', 'incorrect');
-  });
-}
-
-function handleNext() {
-  if (isFeedbackShowing) return;
-  
-  if (currentQuestion === quizData.length - 1) {
-    confirmModal.classList.add('active');
-  } else {
+function nextQuestion() {
+  if (currentQuestion < totalQuestions - 1) {
     currentQuestion++;
     loadQuestion();
+  } else {
+    showConfirmModal();
   }
 }
 
-function handlePrev() {
-  if (isFeedbackShowing) return;
-  
+function prevQuestion() {
   if (currentQuestion > 0) {
     currentQuestion--;
     loadQuestion();
@@ -175,75 +95,102 @@ function handlePrev() {
 }
 
 function updateNavButtons() {
-  prevBtn.style.display = currentQuestion === 0 ? 'none' : 'inline-block';
-  prevBtn.disabled = isFeedbackShowing;
-  nextBtn.disabled = isFeedbackShowing;
-  nextBtn.textContent = currentQuestion === quizData.length - 1 ? 'Finish' : 'Next';
-}
-
-function submitQuiz() {
-  confirmModal.classList.remove('active');
-  quizEl.style.display = 'none';
-  resultsEl.style.display = 'block';
-  showResults();
+  prevBtn.disabled = currentQuestion === 0;
+  nextBtn.textContent = currentQuestion === totalQuestions - 1 ? 'Finish' : 'Next';
+  if (answers[currentQuestion] === null) {
+    nextBtn.disabled = true;
+  } else {
+    nextBtn.disabled = false;
+  }
 }
 
 function updateProgress() {
-  const progress = ((currentQuestion + 1) / quizData.length) * 100;
+  const progressBar = document.querySelector('.progress-bar');
   if (progressBar) {
+    const progress = ((currentQuestion + 1) / totalQuestions) * 100;
     progressBar.style.width = progress + '%';
   }
 }
 
-function showResults() {
-  const percentage = Math.round((score / quizData.length) * 100);
-  scoreEl.innerHTML = `
-    <h2>Your Score: ${score}/${quizData.length} (${percentage}%)</h2>
-    <p>${percentage >= 80 ? 'Excellent!' : percentage >= 60 ? 'Good job!' : 'Try again!'}</p>
-  `;
-  
-  const flowersContainer = document.createElement('div');
-  flowersContainer.className = 'flowers';
-  if (percentage >= 50) {
-    const freshFlowers = ['🌸', '🌺', '🌼', '🌻', '🌷', '💐'];
-    for (let i = 0; i < 8; i++) {
-      const flower = document.createElement('div');
-      flower.className = 'flower';
-      flower.textContent = freshFlowers[Math.floor(Math.random() * freshFlowers.length)];
-      flower.style.left = (Math.random() * 90) + '%';
-      flower.style.top = (Math.random() * 90) + '%';
-      flower.style.animationDelay = (Math.random() * 2) + 's';
-      flowersContainer.appendChild(flower);
-    }
-  } else {
-    const wiltedFlowers = ['🥀', '🌹', '🌺'];
-    for (let i = 0; i < 6; i++) {
-      const flower = document.createElement('div');
-      flower.className = 'flower wilted';
-      flower.textContent = wiltedFlowers[Math.floor(Math.random() * wiltedFlowers.length)];
-      flower.style.left = (Math.random() * 90) + '%';
-      flower.style.top = (Math.random() * 90) + '%';
-      flower.style.animationDelay = (Math.random() * 2) + 's';
-      flowersContainer.appendChild(flower);
-    }
-  }
-  resultsEl.appendChild(flowersContainer);
-  
-  const restartBtn = document.createElement('button');
-  restartBtn.className = 'restartBtn';
-  restartBtn.textContent = 'Restart Quiz';
-  restartBtn.addEventListener('click', () => {
-    resultsEl.innerHTML = '<h1>Results</h1><div id="score"></div>';
-    scoreEl = document.getElementById('score');
-    resultsEl.style.display = 'none';
-    startEl.style.display = 'block';
-    document.querySelector('.flowers')?.remove();
-  });
-  scoreEl.appendChild(restartBtn);
+function showConfirmModal() {
+  confirmModal.classList.add('active');
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
+function hideConfirmModal() {
+  confirmModal.classList.remove('active');
+}
+
+async function submitQuiz() {
+  hideConfirmModal();
+  
+  // Calculate score
+  score = 0;
+  quizData.forEach((q, i) => {
+    if (answers[i] === q.correct) score++;
+  });
+  
+  // Save score
+  const username = prompt('Name for leaderboard (optional):') || 'Anonymous';
+  try {
+    await fetch('/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ score, total: totalQuestions, username })
+    });
+  } catch (e) {
+    console.error('Score save failed:', e);
+  }
+  
+  quizEl.style.display = 'none';
+  resultsEl.style.display = 'block';
+  showResults();
+  loadLeaderboard();
+}
+
+function showResults() {
+  document.getElementById('score').innerHTML = `
+    <h2>${score}/${totalQuestions}</h2>
+    <p>${Math.round((score / totalQuestions) * 100)}% Correct!</p>
+    <button class="restartBtn" onclick="location.reload()">Play Again</button>
+  `;
+}
+
+async function loadLeaderboard() {
+  try {
+    const response = await fetch('/api/leaderboard');
+    const data = await response.json();
+    const lbEl = document.getElementById('leaderboard');
+    lbEl.innerHTML = '<h3>🏆 Top Scores</h3>' +
+      (data.length ? 
+        '<ol>' + data.map(entry => 
+          `<li>${entry.username}: ${entry.score}/${entry.total}`
+        ).join('') + '</ol>' 
+        : '<p>No scores yet!</p>'
+      );
+  } catch (e) {
+    console.error('Leaderboard failed:', e);
+  }
+}
+
+function createProgressBar() {
+  const nav = document.querySelector('.nav-buttons');
+  const progress = document.createElement('div');
+  progress.className = 'progress';
+  progress.innerHTML = '<div class="progress-bar"></div>';
+  nav.parentNode.insertBefore(progress, nav);
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadQuizData();
   createProgressBar();
+  
+  startBtn.onclick = startQuiz;
+  prevBtn.onclick = prevQuestion;
+  nextBtn.onclick = nextQuestion;
+  confirmYes.onclick = submitQuiz;
+  confirmNo.onclick = hideConfirmModal;
+  
   updateNavButtons();
+  loadLeaderboard(); // Initial load
 });

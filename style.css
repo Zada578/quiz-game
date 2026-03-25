@@ -248,7 +248,7 @@ button:active {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(45deg, #F4C2C2, #E8A4A4);
+  background: linear-gradient(45deg, #9CAF88, #8AA77A);
   width: 0%;
   transition: width 0.5s ease;
 }

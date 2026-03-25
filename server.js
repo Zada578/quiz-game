@@ -40,7 +40,7 @@ app.get('/api/questions', async (req, res) => {
     const [rows] = await pool.execute('SELECT * FROM questions ORDER BY id');
     const questions = rows.map(row => ({
       question: row.question,
-      options: JSON.parse(row.options),
+      options: row.options,
       correct: row.correct_index
     }));
     res.json(questions);

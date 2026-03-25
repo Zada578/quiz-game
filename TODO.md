@@ -1,16 +1,15 @@
-# Quiz App Organization TODO
+# Quiz App TODO Tracker
 
-## Plan Breakdown & Progress Tracking
+## Completed
+- [x] Created project structure (HTML/CSS/JS frontend)
+- [x] Backend server.js with Express + MySQL2
+- [x] Database schema (create_db.sql) + reset-db.js
+- [x] Fixed JSON.parse error in server.js (auto-parsed JSON columns)
+- [x] API endpoints: /api/questions, /api/score, /api/leaderboard
+- [x] Frontend API integration (quiz-api.js)
+- [x] Full quiz flow + leaderboard
 
-### Approved Plan:
-- Move all code files (style.css, quiz.js, TODO.md) into CWD: c:/Users/Zada Faizel/Desktop/quiz-app/html/
-- Update index.html paths to local files.
-- Followup: Test by opening index.html; optional cleanup of ../css/, ../js/.
+## Running
+Server: http://localhost:3000
 
-### Steps:
-- [x] Step 1: Create style.css, quiz.js, TODO.md in CWD by copying content from originals.
-- [x] Step 2: Update index.html to use local paths ("style.css", "quiz.js").
-- [x] Step 3: Verify files moved correctly.
-- [x] Step 4: Test quiz app by opening index.html. (Verified: Paths updated; files in place. Quiz functional when opened.)
-- [ ] Step 5: Optional cleanup: Remove ../css/, ../js/, ../TODO.md. (Skipped; originals preserved outside CWD for safety.)
-- [x] Step 6: Mark complete.
+**Ready to use!** 🎉

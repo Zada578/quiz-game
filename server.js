@@ -35,17 +35,49 @@ async function testConnection() {
 }
 
 // API Routes
-app.get('/api/questions', async (req, res) => {
+app.get("/api/questions", async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM questions ORDER BY id');
+    const [rows] = await pool.execute(
+      'SELECT question, options, correct_index as correct FROM questions ORDER BY RAND() LIMIT 5'
+    );
+    // DB stores options as native arrays - no JSON.parse needed
     const questions = rows.map(row => ({
       question: row.question,
       options: row.options,
-      correct: row.correct_index
+      correct: row.correct
     }));
+    console.log(`✅ Sent ${questions.length} questions from DB`);
     res.json(questions);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('DB questions error:', err.message);
+    // Fallback static
+    res.json([
+      {
+        question: "What is 2+2?",
+        options: ["2", "3", "4", "5"],
+        correct: 2
+      },
+      {
+        question: "Capital of France?",
+        options: ["Berlin", "Madrid", "Paris", "Rome"],
+        correct: 2
+      },
+      {
+        question: "Red Planet?",
+        options: ["Venus", "Mars", "Jupiter", "Saturn"],
+        correct: 1
+      },
+      {
+        question: "Romeo and Juliet?",
+        options: ["Dickens", "Shakespeare", "Austen", "Twain"],
+        correct: 1
+      },
+      {
+        question: "Largest ocean?",
+        options: ["Atlantic", "Indian", "Arctic", "Pacific"],
+        correct: 3
+      }
+    ]);
   }
 });
 

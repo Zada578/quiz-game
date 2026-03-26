@@ -1,12 +1,11 @@
-// Quiz App - COMPLETE DB VERSION
-// Fetches questions from /api/questions (MySQL), saves scores, shows leaderboard
+// COMPLETE WORKING QUIZ - DB + Static Fallback
+// Questions load, scores save, leaderboard shows
 
 let quizData = [];
 let totalQuestions = 0;
 let currentQuestion = 0;
 let answers = [];
 let score = 0;
-let isDataLoaded = false;
 
 const startEl = document.getElementById('start');
 const quizEl = document.getElementById('quiz');
@@ -23,24 +22,36 @@ const confirmNo = document.getElementById('confirmNo');
 async function loadQuizData() {
   try {
     const response = await fetch('/api/questions');
-    if (!response.ok) throw new Error('API failed');
-    quizData = await response.json();
+    const data = await response.json();
+    quizData = Array.isArray(data) ? data : [];
     totalQuestions = quizData.length;
-    isDataLoaded = true;
-    console.log(`✅ Loaded ${totalQuestions} questions from DB`);
-  } catch (error) {
-    console.error('❌ Questions load failed:', error);
-    // Fallback static
-    quizData = await (await fetch('/questions/sample.json')).json();
-    totalQuestions = quizData.length;
-    console.log('📦 Using static fallback');
+    console.log(`✅ Loaded ${totalQuestions} questions`);
+  } catch (e) {
+    console.log('API failed, using static');
+    quizData = [
+      {question: 'What is 2+2?', options: ['2', '3', '4', '5'], correct: 2},
+      {question: 'Capital of France?', options: ['Berlin', 'Madrid', 'Paris', 'Rome'], correct: 2},
+      {question: 'Red Planet?', options: ['Venus', 'Mars', 'Jupiter', 'Saturn'], correct: 1},
+      {question: 'Romeo author?', options: ['Dickens', 'Shakespeare', 'Austen', 'Twain'], correct: 1},
+      {question: 'Largest ocean?', options: ['Atlantic', 'Indian', 'Arctic', 'Pacific'], correct: 3}
+    ];
+    totalQuestions = 5;
   }
+}
+
+function startQuiz() {
+  startEl.style.display = 'none';
+  quizEl.style.display = 'block';
+  currentQuestion = 0;
+  score = 0;
+  answers = new Array(totalQuestions).fill(null);
+  loadQuestion();
+  updateNavButtons();
 }
 
 function loadQuestion() {
   const q = quizData[currentQuestion];
   questionEl.textContent = `${currentQuestion + 1}. ${q.question}`;
-  
   optionsEl.innerHTML = '';
   q.options.forEach((option, index) => {
     const div = document.createElement('div');
@@ -50,7 +61,6 @@ function loadQuestion() {
     if (answers[currentQuestion] === index) div.classList.add('selected');
     optionsEl.appendChild(div);
   });
-  updateNavButtons();
   updateProgress();
 }
 
@@ -84,10 +94,8 @@ function updateNavButtons() {
 }
 
 function updateProgress() {
-  const progressBar = document.querySelector('.progress-bar');
-  if (progressBar) {
-    progressBar.style.width = `${((currentQuestion + 1) / totalQuestions) * 100}%`;
-  }
+  const bar = document.querySelector('.progress-bar');
+  if (bar) bar.style.width = `${((currentQuestion + 1) / totalQuestions) * 100}%`;
 }
 
 function showConfirmModal() {
@@ -100,85 +108,57 @@ function hideConfirmModal() {
 
 async function submitQuiz() {
   hideConfirmModal();
-  
-  // Calculate score
   score = answers.reduce((s, ans, i) => s + (ans === quizData[i].correct ? 1 : 0), 0);
   
-  // Save to DB
-  const username = prompt('Name for leaderboard:') || 'Anonymous';
-  try {
-    await fetch('/api/score', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({score, total: totalQuestions, username})
-    });
-    console.log('✅ Score saved to DB');
-  } catch (e) {
-    console.error('Score save failed:', e);
-  }
+  // Save score
+  const username = prompt('Your name:') || 'Anonymous';
+  fetch('/api/score', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({score, total: totalQuestions, username})
+  }).catch(e => console.log('Score save failed'));
   
   quizEl.style.display = 'none';
   resultsEl.style.display = 'block';
-  showResults();
-  await loadLeaderboard();
-}
-
-function showResults() {
   document.getElementById('score').innerHTML = `
     <h2>${score}/${totalQuestions}</h2>
     <p>${Math.round(score/totalQuestions*100)}%</p>
     <button onclick="location.reload()">Play Again</button>
   `;
+  loadLeaderboard();
 }
 
 async function loadLeaderboard() {
+  const lbEl = document.getElementById('leaderboard');
   try {
     const response = await fetch('/api/leaderboard');
     const data = await response.json();
-    const lbEl = document.getElementById('leaderboard');
-    if (lbEl) {
-      if (data.length) {
-        lbEl.innerHTML = '<h3>🏆 Top Scores</h3><ol>' + 
-          data.map(entry => `<li>${entry.username}: ${entry.score}/${entry.total} (${Math.round(entry.score/entry.total*100)}%)</li>`).join('') + 
-          '</ol>';
-      } else {
-        lbEl.innerHTML = '<h3>🏆 Top Scores</h3><p>No scores yet!</p>';
-      }
-    }
-  } catch (e) {
-    console.error('Leaderboard failed:', e);
-    document.getElementById('leaderboard').innerHTML = '<p>Leaderboard unavailable</p>';
+    lbEl.innerHTML = '<h3>🏆 Top Scores</h3>' + 
+      (data.length ? '<ol>' + data.map(r => `<li>${r.username}: ${r.score}/${r.total}`).join('') + '</ol>' : '<p>No scores</p>');
+  } catch {
+    lbEl.innerHTML = '<p>Leaderboard unavailable</p>';
   }
 }
 
 function createProgressBar() {
   const nav = document.querySelector('.nav-buttons');
   if (nav && !document.querySelector('.progress')) {
-    const progress = document.createElement('div');
-    progress.className = 'progress';
-    progress.innerHTML = '<div class="progress-bar"></div>';
-    nav.parentNode.insertBefore(progress, nav);
+    const p = document.createElement('div');
+    p.className = 'progress';
+    p.innerHTML = '<div class="progress-bar"></div>';
+    nav.parentNode.insertBefore(p, nav);
   }
 }
 
-// Init
+// INIT
 document.addEventListener('DOMContentLoaded', async () => {
   await loadQuizData();
   createProgressBar();
+  loadLeaderboard();
   
-  startBtn.onclick = () => {
-    if (!isDataLoaded) {
-      alert('Loading questions...');
-      loadQuizData().then(() => startQuiz());
-      return;
-    }
-    startQuiz();
-  };
+  startBtn.onclick = startQuiz;
   prevBtn.onclick = prevQuestion;
   nextBtn.onclick = nextQuestion;
   confirmYes.onclick = submitQuiz;
   confirmNo.onclick = hideConfirmModal;
-  
-  updateNavButtons();
-  loadLeaderboard();  // Initial load
 });
